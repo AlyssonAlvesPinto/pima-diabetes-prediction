@@ -82,6 +82,7 @@ pip install -r requirements.txt
 ### 📉 Accuracy and Loss Over Epochs
 ![image alt](https://github.com/AlyssonAlvesPinto/pima-diabetes-prediction/blob/main/data/Train_Val.png)
 
+
 ### 📉 ROC Curve Comparison
-![image alt](https://github.com/AlyssonAlvesPinto/pima-diabetes-prediction/blob/main/data/ROC_comparison.png)
+![image alt](https://github.com/AlyssonAlvesPinto/pima-diabetes-prediction/blob/main/data/ROC_Comparison.png)
 
