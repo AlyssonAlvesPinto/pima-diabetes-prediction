@@ -75,9 +75,9 @@ pip install -r requirements.txt
 
 
 ### 📈 Feature Distributions
-![image alt](https://github.com/AlyssonAlvesPinto/pima-diabetes-prediction/main/data/Distrib.pdf?raw=true)
+![image alt](https://github.com/AlyssonAlvesPinto/pima-diabetes-prediction/blob/main/data/Distrib.pdf)
 
 
 
 ### 📉 Accuracy and Loss Over Epochs
-![image alt](https://github.com/AlyssonAlvesPinto/pima-diabetes-prediction/main/data/Train_Val.pdf?raw=true)
+![image alt](https://github.com/AlyssonAlvesPinto/pima-diabetes-prediction/blob/main/data/Train_Val.pdf)
