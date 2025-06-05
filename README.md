@@ -49,5 +49,35 @@ Diabetes is a chronic condition with significant public health impact. The goal 
 
 ---
 
-## 📁 Repository Structure
 
+## 🚀 How to Run
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/yourusername/pima-diabetes-prediction.git
+cd pima-diabetes-prediction
+```
+
+## Install dependencies
+```bash
+pip install -r requirements.txt
+´´´
+
+## 📊 Model Evaluation Results
+
+
+
+### 🔗 Correlation Matrix
+![image alt](https://github.com/AlyssonAlvesPinto/pima-diabetes-prediction/blob/main/data/CM.pdf?raw=true)
+
+
+
+
+### 📈 Feature Distributions
+![image alt](https://github.com/AlyssonAlvesPinto/pima-diabetes-prediction/blob/main/data/Distrib.pdf?raw=true)
+
+
+
+### 📉 Accuracy and Loss Over Epochs
+![image alt](https://github.com/AlyssonAlvesPinto/pima-diabetes-prediction/blob/main/data/Train_Val.pdf?raw=true)
