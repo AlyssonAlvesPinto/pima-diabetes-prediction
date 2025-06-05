@@ -69,7 +69,7 @@ pip install -r requirements.txt
 
 
 ### 🔗 Correlation Matrix
-![image alt](https://github.com/AlyssonAlvesPinto/pima-diabetes-prediction/main/data/CM.pdf?raw=true)
+![image alt](https://github.com/AlyssonAlvesPinto/pima-diabetes-prediction/blob/main/data/CM.pdf)
 
 
 
