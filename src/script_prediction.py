@@ -1,55 +1,36 @@
-#import os
-#os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # força uso de CPU
+import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 import seaborn as sns
+import matplotlib.pyplot as plt
 
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay, roc_curve, auc
+from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score, roc_curve, ConfusionMatrixDisplay
+from sklearn.utils import class_weight
 
-import tensorflow as tf
+from keras_tuner.tuners import RandomSearch
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Input
+from tensorflow.keras.layers import Dense, Dropout, Input
+import tensorflow as tf
+from xgboost import XGBClassifier
 
-# ---------------------------
-# 1. Load Dataset
-# ---------------------------
+# 1. Load data
 url = "https://raw.githubusercontent.com/jbrownlee/Datasets/master/pima-indians-diabetes.data.csv"
 columns = ['Pregnancies', 'Glucose', 'BloodPressure', 'SkinThickness', 'Insulin',
            'BMI', 'DiabetesPedigreeFunction', 'Age', 'Outcome']
 data = pd.read_csv(url, names=columns)
 
-# ---------------------------
-# 2. Visualizations - Exploratory
-# ---------------------------
-plt.figure(figsize=(6, 4))
-sns.countplot(x='Outcome', data=data, palette='viridis')
-plt.title('Distribution of Outcome')
-plt.xticks([0, 1], ['No Disease', 'Disease'])
-plt.xlabel('Outcome')
-plt.ylabel('Count')
-plt.tight_layout()
-plt.show()
+# 2. Replace invalid zeros with NaN and fill with median
+for col in ['Glucose', 'BloodPressure', 'SkinThickness', 'Insulin', 'BMI']:
+    data[col].replace(0, np.nan, inplace=True)
+    data[col].fillna(data[col].median(), inplace=True)
 
-plt.figure(figsize=(10, 8))
-sns.heatmap(data.corr(), annot=True, cmap='coolwarm', fmt='.2f')
-plt.title('Correlation Matrix')
-plt.tight_layout()
-plt.show()
-
-data.hist(figsize=(12, 10), bins=20, edgecolor='black')
-plt.suptitle('Feature Distributions')
-plt.tight_layout()
-plt.show()
-
-# ---------------------------
-# 3. Data Preprocessing
-# ---------------------------
-def remove_outliers(df, columns):
-    for col in columns:
+# 3. Remove outliers using IQR
+def remove_outliers(df, cols):
+    for col in cols:
         Q1 = df[col].quantile(0.25)
         Q3 = df[col].quantile(0.75)
         IQR = Q3 - Q1
@@ -58,92 +39,95 @@ def remove_outliers(df, columns):
         df = df[(df[col] >= lower) & (df[col] <= upper)]
     return df
 
-# Aplicar antes da separação em X e y
-data_clean = remove_outliers(data, ['Glucose', 'BloodPressure', 'BMI', 'Insulin', 'Age'])
+data = remove_outliers(data, ['Glucose', 'BloodPressure', 'BMI', 'Insulin', 'Age'])
 
-
+# 4. Prepare data
 X = data.drop('Outcome', axis=1)
 y = data['Outcome']
-
 scaler = StandardScaler()
 X_scaled = scaler.fit_transform(X)
 
 X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)
 
-# ---------------------------
-# 4. Build Neural Network
-# ---------------------------
-model = Sequential([
-    Input(shape=(X_train.shape[1],)),
-    Dense(12, activation='relu'),
-    Dense(8, activation='relu'),
-    Dense(1, activation='sigmoid')
-])
+# 5. Hyperparameter optimization
+def build_model(hp):
+    model = Sequential()
+    model.add(Input(shape=(X_train.shape[1],)))
+    model.add(Dense(hp.Int('units1', 32, 128, step=32), activation='relu'))
+    model.add(Dropout(hp.Float('dropout1', 0.0, 0.5, step=0.1)))
+    model.add(Dense(hp.Int('units2', 16, 64, step=16), activation='relu'))
+    model.add(Dropout(hp.Float('dropout2', 0.0, 0.5, step=0.1)))
+    model.add(Dense(1, activation='sigmoid'))
+    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+    return model
 
-model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+tuner = RandomSearch(
+    build_model,
+    objective='val_accuracy',
+    max_trials=5,
+    executions_per_trial=1,
+    directory='tuner_dir',
+    project_name='pima_nn'
+)
 
-# ---------------------------
-# 5. Train Model
-# ---------------------------
-history = model.fit(X_train, y_train, epochs=100, batch_size=10, validation_data=(X_test, y_test), verbose=0)
+tuner.search(X_train, y_train, epochs=30, validation_data=(X_test, y_test), verbose=0)
+best_model = tuner.get_best_models(num_models=1)[0]
 
-# ---------------------------
-# 6. Evaluate Model
-# ---------------------------
-loss, accuracy = model.evaluate(X_test, y_test, verbose=0)
-print(f"Test Accuracy: {accuracy:.2f}")
+# 6. Evaluate Neural Network
+y_probs_nn = best_model.predict(X_test).ravel()
+y_pred_nn = (y_probs_nn > 0.5).astype(int)
+print("\n🔍 Neural Network Report:")
+print(classification_report(y_test, y_pred_nn))
+print(f"AUC NN: {roc_auc_score(y_test, y_probs_nn):.3f}")
 
-y_probs = model.predict(X_test).ravel()
-y_pred = (y_probs > 0.5).astype("int32")
+# 7. Train XGBoost
+xgb = XGBClassifier(use_label_encoder=False, eval_metric='logloss')
+xgb.fit(X_train, y_train)
+y_pred_xgb = xgb.predict(X_test)
+y_probs_xgb = xgb.predict_proba(X_test)[:, 1]
+print("\n🌲 XGBoost Report:")
+print(classification_report(y_test, y_pred_xgb))
+print(f"AUC XGB: {roc_auc_score(y_test, y_probs_xgb):.3f}")
 
-print("\nClassification Report:\n", classification_report(y_test, y_pred))
-
-# ---------------------------
-# 7. Confusion Matrix (Normalized)
-# ---------------------------
-cm = confusion_matrix(y_test, y_pred, normalize='true')
-disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=['No Disease', 'Disease'])
-disp.plot(cmap='Blues')
-plt.title('Normalized Confusion Matrix')
-plt.tight_layout()
-plt.show()
-
-# ---------------------------
-# 8. Training History: Accuracy and Loss
-# ---------------------------
-plt.figure(figsize=(10, 4))
-plt.subplot(1, 2, 1)
-plt.plot(history.history['accuracy'], label='Train Accuracy')
-plt.plot(history.history['val_accuracy'], label='Val Accuracy')
-plt.title('Accuracy Over Epochs')
-plt.xlabel('Epoch')
-plt.ylabel('Accuracy')
-plt.legend()
-
-plt.subplot(1, 2, 2)
-plt.plot(history.history['loss'], label='Train Loss')
-plt.plot(history.history['val_loss'], label='Val Loss')
-plt.title('Loss Over Epochs')
-plt.xlabel('Epoch')
-plt.ylabel('Loss')
-plt.legend()
-
-plt.tight_layout()
-plt.show()
-
-# ---------------------------
-# 9. ROC Curve and AUC
-# ---------------------------
-fpr, tpr, thresholds = roc_curve(y_test, y_probs)
-roc_auc = auc(fpr, tpr)
-
-plt.plot(fpr, tpr, label=f'ROC curve (AUC = {roc_auc:.2f})')
+# 8. Visualizations
+# ROC
+fpr_nn, tpr_nn, _ = roc_curve(y_test, y_probs_nn)
+fpr_xgb, tpr_xgb, _ = roc_curve(y_test, y_probs_xgb)
+plt.figure(figsize=(8, 6))
+plt.plot(fpr_nn, tpr_nn, label=f'Neural Net (AUC={roc_auc_score(y_test, y_probs_nn):.2f})')
+plt.plot(fpr_xgb, tpr_xgb, label=f'XGBoost (AUC={roc_auc_score(y_test, y_probs_xgb):.2f})')
 plt.plot([0, 1], [0, 1], 'k--')
+plt.title('ROC Curve Comparison')
 plt.xlabel('False Positive Rate')
 plt.ylabel('True Positive Rate')
-plt.title('ROC Curve')
-plt.legend(loc='lower right')
-plt.grid()
+plt.legend()
+plt.grid(True)
 plt.tight_layout()
 plt.show()
 
+# Confusion Matrix
+ConfusionMatrixDisplay.from_predictions(y_test, y_pred_nn, display_labels=['No Disease', 'Disease'], cmap='Blues')
+plt.title('Neural Net - Confusion Matrix')
+plt.show()
+
+ConfusionMatrixDisplay.from_predictions(y_test, y_pred_xgb, display_labels=['No Disease', 'Disease'], cmap='Greens')
+plt.title('XGBoost - Confusion Matrix')
+plt.show()
+
+# Correlation heatmap
+plt.figure(figsize=(10, 8))
+sns.heatmap(data.corr(), annot=True, cmap='coolwarm')
+plt.title('Correlation Matrix')
+plt.tight_layout()
+plt.show()
+
+# Feature distributions
+data.hist(figsize=(12, 10), bins=20, edgecolor='black')
+plt.suptitle('Feature Distributions (After Cleaning)')
+plt.tight_layout()
+plt.show()
+
+# Class distribution
+sns.countplot(x='Outcome', data=data, palette='viridis')
+plt.title('Target Class Distribution')
+plt.show()
