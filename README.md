@@ -62,7 +62,7 @@ cd pima-diabetes-prediction
 ## Install dependencies
 ```bash
 pip install -r requirements.txt
-´´´
+```
 
 ## 📊 Model Evaluation Results
 
