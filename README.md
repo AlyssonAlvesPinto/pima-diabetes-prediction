@@ -69,15 +69,19 @@ pip install -r requirements.txt
 
 
 ### 🔗 Correlation Matrix
-![image alt](https://github.com/AlyssonAlvesPinto/pima-diabetes-prediction/blob/main/data/CM.pdf)
+![image alt](https://github.com/AlyssonAlvesPinto/pima-diabetes-prediction/blob/main/data/CM.png)
 
 
 
 
 ### 📈 Feature Distributions
-![image alt](https://github.com/AlyssonAlvesPinto/pima-diabetes-prediction/blob/main/data/Distrib.pdf)
+![image alt](https://github.com/AlyssonAlvesPinto/pima-diabetes-prediction/blob/main/data/Distrib.png)
 
 
 
 ### 📉 Accuracy and Loss Over Epochs
-![image alt](https://github.com/AlyssonAlvesPinto/pima-diabetes-prediction/blob/main/data/Train_Val.pdf)
+![image alt](https://github.com/AlyssonAlvesPinto/pima-diabetes-prediction/blob/main/data/Train_Val.png)
+
+### 📉 ROC Curve Comparison
+![image alt](https://github.com/AlyssonAlvesPinto/pima-diabetes-prediction/blob/main/data/ROC_comparison.png)
+
