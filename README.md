@@ -1,4 +1,4 @@
-# 🧠 Pima Indians Diabetes Prediction
+# 🧠 Pima Diabetes Prediction
 
 This repository demonstrates an end-to-end machine learning pipeline for binary classification using the [Pima Indians Diabetes dataset](https://www.kaggle.com/datasets/uciml/pima-indians-diabetes-database). It applies both a tuned neural network and XGBoost classifier, along with data preprocessing, exploratory data analysis, outlier handling, and visualization.
 
